@@ -21,11 +21,21 @@ import java.util.List;
 // }
 public class CreateWorkflowRequest {
 
+    // The new workflow's name, e.g. "Order Processing"
     private String name;
+
+    // The workflow's version number (not enforced/compared anywhere yet)
     private int version;
+
+    // Every state the workflow should have — must include exactly one
+    // with initial = true
     private List<StateRequest> states;
+
+    // Every transition the workflow should have — each one's
+    // fromState/toState must match a name in "states" above
     private List<TransitionRequest> transitions;
 
+    // Empty constructor Spring uses when converting JSON into this object
     public CreateWorkflowRequest() {
     }
 

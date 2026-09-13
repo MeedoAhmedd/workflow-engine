@@ -13,8 +13,13 @@ public class TransitionEventResponse {
     private String fromState;
     private String toState;
     private Instant occurredAt;
+
+    // Whether a webhook/notification has been sent for this event yet —
+    // always false for now, since no dispatcher exists (see TransitionEvent)
     private boolean dispatched;
 
+    // Empty constructor needed for Spring to build this object when
+    // converting it to JSON
     public TransitionEventResponse() {
     }
 
@@ -36,6 +41,7 @@ public class TransitionEventResponse {
         this.dispatched = dispatched;
     }
 
+    // Converts one TransitionEvent entity into this response shape
     public static TransitionEventResponse from(TransitionEvent event) {
         return new TransitionEventResponse(
                 event.getInstanceId(),

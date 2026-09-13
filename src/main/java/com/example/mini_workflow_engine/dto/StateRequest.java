@@ -4,9 +4,13 @@ package com.example.mini_workflow_engine.dto;
 // Example: { "name": "PENDING", "initial": true }
 public class StateRequest {
 
+    // The state's name, e.g. "PENDING"
     private String name;
+
+    // Whether this is the workflow's starting state
     private boolean initial;
 
+    // Empty constructor Spring uses when converting JSON into this object
     public StateRequest() {
     }
 

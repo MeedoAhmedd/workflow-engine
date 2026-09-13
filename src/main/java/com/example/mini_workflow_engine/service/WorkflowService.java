@@ -1,24 +1,35 @@
 package com.example.mini_workflow_engine.service;
 
+// Tells Spring that this class contains business logic
 import org.springframework.stereotype.Service;
 
+// Imports the DTOs that carry an incoming "create workflow" request
 import com.example.mini_workflow_engine.dto.CreateWorkflowRequest;
 import com.example.mini_workflow_engine.dto.StateRequest;
 import com.example.mini_workflow_engine.dto.TransitionRequest;
+
+// Imports the entities this service builds and saves
 import com.example.mini_workflow_engine.model.State;
 import com.example.mini_workflow_engine.model.Transition;
 import com.example.mini_workflow_engine.model.WorkflowDefinition;
+
+// Imports the repository used to save/find workflows
 import com.example.mini_workflow_engine.repository.WorkflowDefinitionRepository;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+// This service owns creating and reading WorkflowDefinitions —
+// the "workflow template" side of the engine, as opposed to
+// WorkflowInstanceService which handles running instances of them.
 @Service
 public class WorkflowService {
 
+    // Repository used to save and find workflow definitions
     private final WorkflowDefinitionRepository workflowDefinitionRepository;
 
+    // Constructor used by Spring to provide the repository
     public WorkflowService(
             WorkflowDefinitionRepository workflowDefinitionRepository
     ) {

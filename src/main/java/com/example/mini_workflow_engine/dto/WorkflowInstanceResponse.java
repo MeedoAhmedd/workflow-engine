@@ -15,8 +15,13 @@ public class WorkflowInstanceResponse {
     private String workflowName;
     private String currentState;
     private String externalReferenceId;
+
+    // The instance's business data (from InstanceVariable rows), shown
+    // as a plain name -> value map rather than a list of objects
     private Map<String, String> data;
 
+    // Empty constructor needed for Spring to build this object when
+    // converting it to JSON
     public WorkflowInstanceResponse() {
     }
 
@@ -40,7 +45,10 @@ public class WorkflowInstanceResponse {
         return from(instance, List.of());
     }
 
-    // Builds the response including the instance's current data.
+    // Builds the response including the instance's current data. The
+    // loop below converts the flat list of InstanceVariable rows (each
+    // one just a name+value pair) into a single name -> value map, which
+    // is a friendlier JSON shape than a list of {name, value} objects.
     public static WorkflowInstanceResponse from(
             WorkflowInstance instance,
             List<InstanceVariable> variables

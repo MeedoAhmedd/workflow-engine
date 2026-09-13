@@ -29,6 +29,8 @@ public class WorkflowDefinitionResponse {
     private List<StateResponse> states;
     private List<TransitionResponse> transitions;
 
+    // Empty constructor needed for Spring to build this object when
+    // converting it to JSON
     public WorkflowDefinitionResponse() {
     }
 
@@ -46,6 +48,11 @@ public class WorkflowDefinitionResponse {
         this.transitions = transitions;
     }
 
+    // Converts a WorkflowDefinition entity (with its full list of State
+    // and Transition objects) into this JSON-friendly response shape.
+    // The .stream().map(...).collect(...) pattern here just means:
+    // "for every State in the workflow, turn it into a StateResponse,
+    // and collect all of them into a new list" — same idea for transitions.
     public static WorkflowDefinitionResponse from(WorkflowDefinition workflow) {
         List<StateResponse> stateResponses = workflow.getStates().stream()
                 .map(state -> new StateResponse(state.getName(), state.isInitial()))
@@ -108,7 +115,10 @@ public class WorkflowDefinitionResponse {
         this.transitions = transitions;
     }
 
-    // Nested response for a single state
+    // Nested response for a single state.
+    // Defined inside WorkflowDefinitionResponse (rather than its own file)
+    // because it only ever makes sense as part of a workflow's response —
+    // nothing else needs a standalone "StateResponse".
     public static class StateResponse {
         private String name;
         private boolean initial;
@@ -138,7 +148,9 @@ public class WorkflowDefinitionResponse {
         }
     }
 
-    // Nested response for a single transition
+    // Nested response for a single transition. Note this only shows
+    // action/fromState/toState — guard and requiredRole details from the
+    // real Transition entity aren't exposed here yet.
     public static class TransitionResponse {
         private String action;
         private String fromState;

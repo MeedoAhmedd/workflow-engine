@@ -18,14 +18,29 @@ import com.example.mini_workflow_engine.model.GuardOperator;
 // }
 public class TransitionRequest {
 
+    // The action that triggers this transition, e.g. "pay"
     private String action;
+
+    // Name of the state this transition starts from (must match a
+    // StateRequest.name elsewhere in the same CreateWorkflowRequest)
     private String fromState;
+
+    // Name of the state this transition leads to (same rule as above)
     private String toState;
+
+    // The three guard fields together — either all three are set, or
+    // none are (checked in WorkflowService). If set, this transition
+    // only fires when the instance's guardVariable compares to
+    // guardValue using guardOperator.
     private String guardVariable;
     private GuardOperator guardOperator;
     private String guardValue;
+
+    // Optional: if set, only a caller declaring this exact role
+    // (via X-Caller-Role) may execute this transition
     private String requiredRole;
 
+    // Empty constructor Spring uses when converting JSON into this object
     public TransitionRequest() {
     }
 

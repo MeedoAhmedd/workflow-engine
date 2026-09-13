@@ -12,14 +12,25 @@ import java.time.Instant;
 // }
 public class ErrorResponse {
 
+    // When the error happened (set automatically, see constructor below)
     private Instant timestamp;
+
+    // The HTTP status code, e.g. 400 or 403
     private int status;
+
+    // A short machine-readable error code, e.g. "INVALID_REQUEST" or "FORBIDDEN"
     private String error;
+
+    // A human-readable explanation of what went wrong
     private String message;
 
+    // Empty constructor needed for Spring to build this object when
+    // converting it to JSON
     public ErrorResponse() {
     }
 
+    // Constructor used everywhere an error is actually thrown —
+    // timestamp is always set to "right now" automatically
     public ErrorResponse(int status, String error, String message) {
         this.timestamp = Instant.now();
         this.status = status;

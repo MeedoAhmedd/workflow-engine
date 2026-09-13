@@ -14,6 +14,8 @@ public class TransitionHistoryEntryResponse {
     private String toState;
     private Instant occurredAt;
 
+    // Empty constructor needed for Spring to build this object when
+    // converting it to JSON
     public TransitionHistoryEntryResponse() {
     }
 
@@ -29,6 +31,7 @@ public class TransitionHistoryEntryResponse {
         this.occurredAt = occurredAt;
     }
 
+    // Converts one TransitionHistoryEntry entity into this response shape
     public static TransitionHistoryEntryResponse from(TransitionHistoryEntry entry) {
         return new TransitionHistoryEntryResponse(
                 entry.getAction(),
