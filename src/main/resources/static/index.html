@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mini Workflow Engine</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Mini Workflow Engine</h1>
+      <p class="subtitle">Developer dashboard for the workflow engine API</p>
+    </header>
+
+    <section class="card">
+      <h2>Workflow: Job Application</h2>
+      <p class="muted">Definition ID: <code>1</code></p>
+
+      <div class="progress" id="progress">
+        <div class="step" data-state="APPLIED">
+          <span class="dot"></span>
+          <span class="label">APPLIED</span>
+        </div>
+        <div class="arrow">submit &rarr;</div>
+        <div class="step" data-state="UNDER_REVIEW">
+          <span class="dot"></span>
+          <span class="label">UNDER_REVIEW</span>
+        </div>
+        <div class="arrow">approve &rarr;</div>
+        <div class="step" data-state="APPROVED">
+          <span class="dot"></span>
+          <span class="label">APPROVED</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Instance</h2>
+      <div class="controls">
+        <button id="createBtn">Create Workflow Instance</button>
+        <button id="submitBtn" disabled>Submit</button>
+        <button id="approveBtn" disabled>Approve</button>
+      </div>
+
+      <div class="info">
+        <div>
+          <span class="info-label">Instance ID</span>
+          <span class="info-value" id="instanceId">&mdash;</span>
+        </div>
+        <div>
+          <span class="info-label">Current State</span>
+          <span class="info-value" id="currentState">&mdash;</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Status</h2>
+      <div id="status" class="status status-idle">Ready. Create an instance to begin.</div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
