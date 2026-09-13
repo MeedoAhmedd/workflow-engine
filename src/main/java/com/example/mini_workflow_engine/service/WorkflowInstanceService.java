@@ -22,10 +22,19 @@ import com.example.mini_workflow_engine.repository.StateRepository;
 import com.example.mini_workflow_engine.model.TransitionHistoryEntry;
 import com.example.mini_workflow_engine.repository.TransitionHistoryEntryRepository;
 
+// Imports the instance variable entity and repository, used for guard data
+import com.example.mini_workflow_engine.model.InstanceVariable;
+import com.example.mini_workflow_engine.repository.InstanceVariableRepository;
+
+// Imports the transition event entity and repository, used by future hooks/notifications
+import com.example.mini_workflow_engine.model.TransitionEvent;
+import com.example.mini_workflow_engine.repository.TransitionEventRepository;
+
 // Imports Spring's service annotation
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 
 // Tells Spring that this class contains business logic
@@ -44,6 +53,12 @@ public class WorkflowInstanceService {
     // Repository used to read and record transition history
     private final TransitionHistoryEntryRepository transitionHistoryEntryRepository;
 
+    // Repository used to read and record instance data used by guards
+    private final InstanceVariableRepository instanceVariableRepository;
+
+    // Repository used to record transition events for future hooks/notifications
+    private final TransitionEventRepository transitionEventRepository;
+
     // Service used to execute workflow transitions
     private final WorkflowEngineService workflowEngineService;
 
@@ -54,12 +69,16 @@ public class WorkflowInstanceService {
             WorkflowDefinitionRepository workflowDefinitionRepository,
             StateRepository stateRepository,
             TransitionHistoryEntryRepository transitionHistoryEntryRepository,
+            InstanceVariableRepository instanceVariableRepository,
+            TransitionEventRepository transitionEventRepository,
             WorkflowEngineService workflowEngineService
     ) {
         this.workflowInstanceRepository = workflowInstanceRepository;
         this.workflowDefinitionRepository = workflowDefinitionRepository;
         this.stateRepository = stateRepository;
         this.transitionHistoryEntryRepository = transitionHistoryEntryRepository;
+        this.instanceVariableRepository = instanceVariableRepository;
+        this.transitionEventRepository = transitionEventRepository;
         this.workflowEngineService = workflowEngineService;
     }
 
@@ -97,7 +116,8 @@ public class WorkflowInstanceService {
     public WorkflowInstance createInstance(
             Long workflowDefinitionId,
             String ownerId,
-            String externalReferenceId
+            String externalReferenceId,
+            Map<String, String> data
     ) {
 
         // Find the workflow definition using its ID, scoped to this owner
@@ -134,15 +154,28 @@ public class WorkflowInstanceService {
 
 
         // Save the new workflow instance
-        return workflowInstanceRepository.save(instance);
+        WorkflowInstance savedInstance = workflowInstanceRepository.save(instance);
+
+
+        // Persist any initial data the caller provided, so guarded
+        // transitions can be evaluated against it later.
+        saveVariables(savedInstance, data);
+
+
+        return savedInstance;
     }
 
 
-    // Executes an action on an existing workflow instance
+    // Executes an action on an existing workflow instance. Any data
+    // provided here is saved before the transition is evaluated, so a
+    // guard can reference a value supplied in this very call (e.g.
+    // submitting a review score at the same time as the "decide" action).
     public WorkflowInstance executeAction(
             Long instanceId,
             String action,
-            String ownerId
+            String ownerId,
+            Map<String, String> data,
+            String callerRole
     ) {
 
         // Find the workflow instance using its ID, scoped to this owner
@@ -155,16 +188,29 @@ public class WorkflowInstanceService {
                         );
 
 
+        // Persist any data provided with this action before evaluating
+        // guards, so the new values are visible to them immediately.
+        saveVariables(instance, data);
+        List<InstanceVariable> variables =
+                instanceVariableRepository.findByInstanceId(instance.getId());
+
+
         // Get the current state of the instance
         State currentState = instance.getCurrentState();
 
 
-        // Ask the workflow engine to find the next state
+        // Ask the workflow engine to find the next state, considering this
+        // instance's data (for guarded transitions) and the caller's role
+        // (for role-restricted transitions). Throws ForbiddenActionException
+        // (mapped to HTTP 403) if the caller lacks the required role —
+        // that check happens here, before anything is changed or saved.
         String trimmedAction = action.trim();
         State nextState =
                 workflowEngineService.executeTransition(
                         currentState,
-                        trimmedAction
+                        trimmedAction,
+                        variables,
+                        callerRole
                 );
 
 
@@ -189,6 +235,19 @@ public class WorkflowInstanceService {
         transitionHistoryEntryRepository.save(historyEntry);
 
 
+        // Record a system-wide event too, in a shape a future
+        // webhook/notification dispatcher could read and act on.
+        TransitionEvent event = new TransitionEvent(
+                ownerId,
+                instance.getId(),
+                instance.getWorkflowDefinition().getName(),
+                trimmedAction,
+                currentState.getName(),
+                nextState.getName()
+        );
+        transitionEventRepository.save(event);
+
+
         // Return the updated instance
         return instance;
     }
@@ -205,5 +264,45 @@ public class WorkflowInstanceService {
 
         return transitionHistoryEntryRepository
                 .findByInstanceIdOrderByOccurredAtAsc(instance.getId());
+    }
+
+
+    // Returns an instance's current data, scoped to its owner.
+    public List<InstanceVariable> getVariables(Long instanceId, String ownerId) {
+
+        WorkflowInstance instance = getInstance(instanceId, ownerId);
+
+        return instanceVariableRepository.findByInstanceId(instance.getId());
+    }
+
+
+    // Returns every transition event across all of this owner's
+    // instances, in the order they happened. A future webhook/notification
+    // dispatcher would poll this (or the underlying repository) to know
+    // what needs to be sent out.
+    public List<TransitionEvent> getEvents(String ownerId) {
+        return transitionEventRepository.findByOwnerIdOrderByOccurredAtAsc(ownerId);
+    }
+
+
+    // Creates or updates instance variables. Each key either updates an
+    // existing InstanceVariable row (if that name already exists on this
+    // instance) or creates a new one — never leaves duplicate rows for
+    // the same variable name.
+    private void saveVariables(WorkflowInstance instance, Map<String, String> data) {
+
+        if (data == null) {
+            return;
+        }
+
+        for (Map.Entry<String, String> entry : data.entrySet()) {
+
+            InstanceVariable variable = instanceVariableRepository
+                    .findByInstanceIdAndName(instance.getId(), entry.getKey())
+                    .orElse(new InstanceVariable(instance, entry.getKey(), null));
+
+            variable.setValue(entry.getValue());
+            instanceVariableRepository.save(variable);
+        }
     }
 }

@@ -49,6 +49,25 @@ public class Transition {
     private WorkflowDefinition workflowDefinition;
 
 
+    // Optional guard: if set, this transition only fires when the
+    // instance's variable named guardVariable compares to guardValue
+    // using guardOperator. A transition with no guard (guardVariable is
+    // null) always matches, preserving old unguarded-workflow behavior.
+    private String guardVariable;
+
+    @Enumerated(EnumType.STRING)
+    private GuardOperator guardOperator;
+
+    private String guardValue;
+
+
+    // Optional: if set, only a caller declaring this exact role
+    // (via X-Caller-Role) may execute this transition. A transition with
+    // no required role (null) can be executed by anyone with the right
+    // owner, preserving old unrestricted-workflow behavior.
+    private String requiredRole;
+
+
     // Empty constructor required by JPA
     public Transition() {
     }
@@ -65,6 +84,26 @@ public class Transition {
         this.fromState = fromState;
         this.toState = toState;
         this.workflowDefinition = workflowDefinition;
+    }
+
+
+    // Constructor used when creating a guarded transition
+    public Transition(
+            String action,
+            State fromState,
+            State toState,
+            WorkflowDefinition workflowDefinition,
+            String guardVariable,
+            GuardOperator guardOperator,
+            String guardValue
+    ) {
+        this.action = action;
+        this.fromState = fromState;
+        this.toState = toState;
+        this.workflowDefinition = workflowDefinition;
+        this.guardVariable = guardVariable;
+        this.guardOperator = guardOperator;
+        this.guardValue = guardValue;
     }
 
 
@@ -119,5 +158,43 @@ public class Transition {
     // Changes the workflow this transition belongs to
     public void setWorkflowDefinition(WorkflowDefinition workflowDefinition) {
         this.workflowDefinition = workflowDefinition;
+    }
+
+
+    public String getGuardVariable() {
+        return guardVariable;
+    }
+
+    public void setGuardVariable(String guardVariable) {
+        this.guardVariable = guardVariable;
+    }
+
+    public GuardOperator getGuardOperator() {
+        return guardOperator;
+    }
+
+    public void setGuardOperator(GuardOperator guardOperator) {
+        this.guardOperator = guardOperator;
+    }
+
+    public String getGuardValue() {
+        return guardValue;
+    }
+
+    public void setGuardValue(String guardValue) {
+        this.guardValue = guardValue;
+    }
+
+    // A transition with no guard variable always matches.
+    public boolean hasGuard() {
+        return guardVariable != null;
+    }
+
+    public String getRequiredRole() {
+        return requiredRole;
+    }
+
+    public void setRequiredRole(String requiredRole) {
+        this.requiredRole = requiredRole;
     }
 }

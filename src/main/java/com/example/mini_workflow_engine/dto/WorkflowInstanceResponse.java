@@ -1,15 +1,21 @@
 package com.example.mini_workflow_engine.dto;
 
+import com.example.mini_workflow_engine.model.InstanceVariable;
 import com.example.mini_workflow_engine.model.WorkflowInstance;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 // JSON returned for a workflow instance
-// Example: { "instanceId": 4, "workflowName": "Job Application", "currentState": "UNDER_REVIEW" }
+// Example: { "instanceId": 4, "workflowName": "Job Application", "currentState": "UNDER_REVIEW", "data": { "score": "85" } }
 public class WorkflowInstanceResponse {
 
     private Long instanceId;
     private String workflowName;
     private String currentState;
     private String externalReferenceId;
+    private Map<String, String> data;
 
     public WorkflowInstanceResponse() {
     }
@@ -18,22 +24,38 @@ public class WorkflowInstanceResponse {
             Long instanceId,
             String workflowName,
             String currentState,
-            String externalReferenceId
+            String externalReferenceId,
+            Map<String, String> data
     ) {
         this.instanceId = instanceId;
         this.workflowName = workflowName;
         this.currentState = currentState;
         this.externalReferenceId = externalReferenceId;
+        this.data = data;
     }
 
-    // Builds the response directly from the entity, so the mapping
-    // lives in one place instead of being repeated in every controller method.
+    // Builds the response directly from the entity, with no instance data
+    // (used where the caller hasn't fetched variables — data comes back empty).
     public static WorkflowInstanceResponse from(WorkflowInstance instance) {
+        return from(instance, List.of());
+    }
+
+    // Builds the response including the instance's current data.
+    public static WorkflowInstanceResponse from(
+            WorkflowInstance instance,
+            List<InstanceVariable> variables
+    ) {
+        Map<String, String> data = new HashMap<>();
+        for (InstanceVariable variable : variables) {
+            data.put(variable.getName(), variable.getValue());
+        }
+
         return new WorkflowInstanceResponse(
                 instance.getId(),
                 instance.getWorkflowDefinition().getName(),
                 instance.getCurrentState().getName(),
-                instance.getExternalReferenceId()
+                instance.getExternalReferenceId(),
+                data
         );
     }
 
@@ -67,5 +89,13 @@ public class WorkflowInstanceResponse {
 
     public void setExternalReferenceId(String externalReferenceId) {
         this.externalReferenceId = externalReferenceId;
+    }
+
+    public Map<String, String> getData() {
+        return data;
+    }
+
+    public void setData(Map<String, String> data) {
+        this.data = data;
     }
 }

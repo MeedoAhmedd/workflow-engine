@@ -114,7 +114,40 @@ public class WorkflowService {
                     );
                 }
 
-                Transition transition = new Transition(action, fromState, toState, workflow);
+                // A guard needs all three fields together, or none at all —
+                // a partially-specified guard is almost certainly a mistake
+                // (e.g. forgetting guardValue), so it's rejected rather than
+                // silently treated as unguarded.
+                boolean hasAnyGuardField =
+                        transitionRequest.getGuardVariable() != null
+                                || transitionRequest.getGuardOperator() != null
+                                || transitionRequest.getGuardValue() != null;
+                boolean hasAllGuardFields =
+                        transitionRequest.getGuardVariable() != null
+                                && transitionRequest.getGuardOperator() != null
+                                && transitionRequest.getGuardValue() != null;
+
+                if (hasAnyGuardField && !hasAllGuardFields) {
+                    throw new IllegalArgumentException(
+                            "A transition guard requires guardVariable, guardOperator, "
+                                    + "and guardValue together, or none of them"
+                    );
+                }
+
+                Transition transition = hasAllGuardFields
+                        ? new Transition(
+                                action,
+                                fromState,
+                                toState,
+                                workflow,
+                                transitionRequest.getGuardVariable(),
+                                transitionRequest.getGuardOperator(),
+                                transitionRequest.getGuardValue()
+                          )
+                        : new Transition(action, fromState, toState, workflow);
+
+                transition.setRequiredRole(transitionRequest.getRequiredRole());
+
                 workflow.getTransitions().add(transition);
             }
         }

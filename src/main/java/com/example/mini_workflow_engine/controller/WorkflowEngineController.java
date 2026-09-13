@@ -2,6 +2,7 @@ package com.example.mini_workflow_engine.controller;
 
 import com.example.mini_workflow_engine.dto.CreateWorkflowInstanceRequest;
 import com.example.mini_workflow_engine.dto.ExecuteActionRequest;
+import com.example.mini_workflow_engine.dto.TransitionEventResponse;
 import com.example.mini_workflow_engine.dto.TransitionHistoryEntryResponse;
 import com.example.mini_workflow_engine.dto.WorkflowInstanceResponse;
 import com.example.mini_workflow_engine.model.WorkflowInstance;
@@ -37,15 +38,20 @@ public class WorkflowEngineController {
                 workflowInstanceService.createInstance(
                         request.getWorkflowDefinitionId(),
                         ownerId,
-                        request.getExternalReferenceId()
+                        request.getExternalReferenceId(),
+                        request.getData()
                 );
 
-        return WorkflowInstanceResponse.from(instance);
+        return WorkflowInstanceResponse.from(
+                instance,
+                workflowInstanceService.getVariables(instance.getId(), ownerId)
+        );
     }
 
     @PostMapping("/workflow-instances/{instanceId}/execute")
     public WorkflowInstanceResponse executeWorkflow(
             @RequestHeader("X-Owner-Id") String ownerId,
+            @RequestHeader(value = "X-Caller-Role", required = false) String callerRole,
             @PathVariable Long instanceId,
             @RequestBody ExecuteActionRequest request
     ) {
@@ -53,10 +59,15 @@ public class WorkflowEngineController {
                 workflowInstanceService.executeAction(
                         instanceId,
                         request.getAction(),
-                        ownerId
+                        ownerId,
+                        request.getData(),
+                        callerRole
                 );
 
-        return WorkflowInstanceResponse.from(instance);
+        return WorkflowInstanceResponse.from(
+                instance,
+                workflowInstanceService.getVariables(instanceId, ownerId)
+        );
     }
 
     @GetMapping("/workflow-instances/{instanceId}")
@@ -67,7 +78,10 @@ public class WorkflowEngineController {
         WorkflowInstance instance =
                 workflowInstanceService.getInstance(instanceId, ownerId);
 
-        return WorkflowInstanceResponse.from(instance);
+        return WorkflowInstanceResponse.from(
+                instance,
+                workflowInstanceService.getVariables(instanceId, ownerId)
+        );
     }
 
     @GetMapping("/workflow-instances/by-reference/{externalReferenceId}")
@@ -81,7 +95,10 @@ public class WorkflowEngineController {
                         externalReferenceId
                 );
 
-        return WorkflowInstanceResponse.from(instance);
+        return WorkflowInstanceResponse.from(
+                instance,
+                workflowInstanceService.getVariables(instance.getId(), ownerId)
+        );
     }
 
     @GetMapping("/workflow-instances/{instanceId}/history")
@@ -91,6 +108,15 @@ public class WorkflowEngineController {
     ) {
         return workflowInstanceService.getHistory(instanceId, ownerId).stream()
                 .map(TransitionHistoryEntryResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    @GetMapping("/events")
+    public List<TransitionEventResponse> getEvents(
+            @RequestHeader("X-Owner-Id") String ownerId
+    ) {
+        return workflowInstanceService.getEvents(ownerId).stream()
+                .map(TransitionEventResponse::from)
                 .collect(Collectors.toList());
     }
 }
