@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.example</groupId>
-	<artifactId>mini-workflow-engine</artifactId>
+	<artifactId>workflow-engine</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name/>
-	<description/>
+	<name>workflow-engine</name>
+	<description>A reusable, integratable workflow engine</description>
 	<url/>
 	<licenses>
 		<license/>
