@@ -18,8 +18,14 @@ import com.example.mini_workflow_engine.repository.WorkflowDefinitionRepository;
 // Imports the state repository, used to find a workflow's initial state
 import com.example.mini_workflow_engine.repository.StateRepository;
 
+// Imports the transition history entity and repository
+import com.example.mini_workflow_engine.model.TransitionHistoryEntry;
+import com.example.mini_workflow_engine.repository.TransitionHistoryEntryRepository;
+
 // Imports Spring's service annotation
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 
 // Tells Spring that this class contains business logic
@@ -35,6 +41,9 @@ public class WorkflowInstanceService {
     // Repository used to find a workflow's initial state
     private final StateRepository stateRepository;
 
+    // Repository used to read and record transition history
+    private final TransitionHistoryEntryRepository transitionHistoryEntryRepository;
+
     // Service used to execute workflow transitions
     private final WorkflowEngineService workflowEngineService;
 
@@ -44,11 +53,13 @@ public class WorkflowInstanceService {
             WorkflowInstanceRepository workflowInstanceRepository,
             WorkflowDefinitionRepository workflowDefinitionRepository,
             StateRepository stateRepository,
+            TransitionHistoryEntryRepository transitionHistoryEntryRepository,
             WorkflowEngineService workflowEngineService
     ) {
         this.workflowInstanceRepository = workflowInstanceRepository;
         this.workflowDefinitionRepository = workflowDefinitionRepository;
         this.stateRepository = stateRepository;
+        this.transitionHistoryEntryRepository = transitionHistoryEntryRepository;
         this.workflowEngineService = workflowEngineService;
     }
 
@@ -149,10 +160,11 @@ public class WorkflowInstanceService {
 
 
         // Ask the workflow engine to find the next state
+        String trimmedAction = action.trim();
         State nextState =
                 workflowEngineService.executeTransition(
                         currentState,
-                        action.trim()
+                        trimmedAction
                 );
 
 
@@ -164,7 +176,34 @@ public class WorkflowInstanceService {
         workflowInstanceRepository.save(instance);
 
 
+        // Record this transition in the instance's history, so the full
+        // sequence of what happened survives even after the state moves on.
+        // This only ever runs after a successful transition above, so
+        // history can never contain a transition that didn't actually happen.
+        TransitionHistoryEntry historyEntry = new TransitionHistoryEntry(
+                instance,
+                trimmedAction,
+                currentState.getName(),
+                nextState.getName()
+        );
+        transitionHistoryEntryRepository.save(historyEntry);
+
+
         // Return the updated instance
         return instance;
+    }
+
+
+    // Returns an instance's full transition history, scoped to its owner
+    // so one integrator can never read another integrator's audit trail.
+    public List<TransitionHistoryEntry> getHistory(Long instanceId, String ownerId) {
+
+        // Reuse the owner-scoped lookup so a wrong owner gets the same
+        // "not found" behavior here as everywhere else, instead of leaking
+        // whether an instance with that ID exists at all.
+        WorkflowInstance instance = getInstance(instanceId, ownerId);
+
+        return transitionHistoryEntryRepository
+                .findByInstanceIdOrderByOccurredAtAsc(instance.getId());
     }
 }

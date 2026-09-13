@@ -2,6 +2,7 @@ package com.example.mini_workflow_engine.controller;
 
 import com.example.mini_workflow_engine.dto.CreateWorkflowInstanceRequest;
 import com.example.mini_workflow_engine.dto.ExecuteActionRequest;
+import com.example.mini_workflow_engine.dto.TransitionHistoryEntryResponse;
 import com.example.mini_workflow_engine.dto.WorkflowInstanceResponse;
 import com.example.mini_workflow_engine.model.WorkflowInstance;
 import com.example.mini_workflow_engine.service.WorkflowInstanceService;
@@ -12,6 +13,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 public class WorkflowEngineController {
@@ -78,5 +82,15 @@ public class WorkflowEngineController {
                 );
 
         return WorkflowInstanceResponse.from(instance);
+    }
+
+    @GetMapping("/workflow-instances/{instanceId}/history")
+    public List<TransitionHistoryEntryResponse> getWorkflowInstanceHistory(
+            @RequestHeader("X-Owner-Id") String ownerId,
+            @PathVariable Long instanceId
+    ) {
+        return workflowInstanceService.getHistory(instanceId, ownerId).stream()
+                .map(TransitionHistoryEntryResponse::from)
+                .collect(Collectors.toList());
     }
 }
